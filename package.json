@@ -1,0 +1,24 @@
+{
+  "name": "pharmacy-cold-chain",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["server", "client"],
+  "engines": {"node": ">=22.12.0"},
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "dev": "concurrently -k -n API,WEB -c cyan,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm start -w server",
+    "seed": "npm run seed -w server",
+    "seed:fhir": "node server/src/seed-fhir.js",
+    "demo": "npm run setup && npm run build && node scripts/demo.js",
+    "test": "npm test -w server",
+    "check": "npm test && npm run build",
+    "audit:export": "node server/src/export-audit.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "mongodb-memory-server": "^10.2.0"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@coldchain/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "seed": "node src/seed-cli.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js"
+  },
+  "dependencies": {
+    "@redox-opensource/redox-hl7-v2": "2.0.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "mongoose": "^8.18.0",
+    "web-push": "^3.6.7",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {"supertest": "^7.1.4"}
+}

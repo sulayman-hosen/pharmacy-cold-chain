@@ -1,0 +1,74 @@
+{
+  "resourceType": "MedicationRequest",
+  "id": "demo-order-01",
+  "meta": {
+    "versionId": "1"
+  },
+  "status": "active",
+  "intent": "order",
+  "medicationCodeableConcept": {
+    "coding": [
+      {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "274783",
+        "display": "insulin glargine 100 UNT/ML Injectable Solution"
+      }
+    ],
+    "text": "insulin glargine 100 UNT/ML Injectable Solution"
+  },
+  "subject": {
+    "reference": "Patient/demo-patient-01"
+  },
+  "encounter": {
+    "reference": "Encounter/demo-encounter-01"
+  },
+  "requester": {
+    "identifier": {
+      "system": "https://coldchain.example.org/fhir/prescribers",
+      "value": "demo-prescriber"
+    }
+  },
+  "dosageInstruction": [
+    {
+      "sequence": 1,
+      "text": "Synthetic software test order only",
+      "timing": {
+        "repeat": {
+          "frequency": 1,
+          "period": 1,
+          "periodUnit": "d"
+        }
+      },
+      "route": {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "34206005",
+            "display": "Subcutaneous route"
+          }
+        ]
+      },
+      "doseAndRate": [
+        {
+          "doseQuantity": {
+            "value": 10,
+            "unit": "units",
+            "system": "http://unitsofmeasure.org",
+            "code": "[iU]"
+          }
+        }
+      ]
+    }
+  ],
+  "dispenseRequest": {
+    "quantity": {
+      "value": 1,
+      "unit": "dose",
+      "system": "http://unitsofmeasure.org",
+      "code": "{dose}"
+    }
+  },
+  "substitution": {
+    "allowedBoolean": false
+  }
+}
