@@ -11,11 +11,11 @@
     "build": "npm run build -w client",
     "start": "npm start -w server",
     "seed": "npm run seed -w server",
-    "seed:fhir": "node server/src/seed-fhir.js",
+    "seed:fhir": "node server/src/cli/fhirSeedCli.js",
     "demo": "npm run setup && npm run build && node server/scripts/demo.js",
     "test": "npm test -w server",
     "check": "npm test && npm run build",
-    "audit:export": "node server/src/export-audit.js"
+    "audit:export": "node server/src/cli/exportAuditCli.js"
   },
   "devDependencies": {
     "concurrently": "^9.2.0",

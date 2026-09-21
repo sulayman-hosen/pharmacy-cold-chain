@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "seed": "node src/seed-cli.js",
+    "seed": "node src/cli/seedCli.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js"
   },
   "dependencies": {
