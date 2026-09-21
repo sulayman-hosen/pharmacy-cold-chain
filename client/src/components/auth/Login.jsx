@@ -84,13 +84,6 @@ export function Login({ onLogin, t }) {
               <ArrowRight size={17} />
             </Button>
           </form>
-          <div className="login-help">
-            <LockKeyhole size={20} />
-            <div>
-              <strong>{t.candidateDemo}</strong>
-              <p>{t.demoHelpText}</p>
-            </div>
-          </div>
           <small className="muted">{t.softwareDemo}</small>
         </div>
       </section>
