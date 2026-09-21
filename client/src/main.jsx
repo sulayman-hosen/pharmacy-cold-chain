@@ -823,16 +823,19 @@ function Worklist({rows,onOpen,search,setSearch,filter,setFilter,user,onNew,t}){
 
 function AuditView({t}){
   const [rows,setRows]=useState([]);
+  const [indents,setIndents]=useState([]);
   const [verification,setVerification]=useState(null);
   const [error,setError]=useState('');
   const [search,setSearch]=useState('');
   const [filter,setFilter]=useState('all');
   const [selectedAudit,setSelectedAudit]=useState(null);
+  const [selectedIndent,setSelectedIndent]=useState(null);
   const [lifecycleData,setLifecycleData]=useState(null);
   const [isLoadingLifecycle,setIsLoadingLifecycle]=useState(true);
   const [toastMsg,setToastMsg]=useState('');
   const [isVerifying,setIsVerifying]=useState(false);
   const [showCertModal,setShowCertModal]=useState(false);
+  const [subTab,setSubTab]=useState('events');
 
   async function loadLatestLifecycle(){
     setIsLoadingLifecycle(true);
@@ -856,6 +859,7 @@ function AuditView({t}){
     try{
       setRows(await api('/audit'));
       setVerification(await api('/audit/verify'));
+      try{ setIndents(await api('/indents')); }catch(e){}
       await loadLatestLifecycle();
     }catch(e){
       setError(e.message);
@@ -952,6 +956,24 @@ function AuditView({t}){
             <ShieldCheck size={17}/>{isVerifying ? 'Verifying...' : (t.verifyChain || 'Verify Audit Chain')}
           </Button>
         </div>
+      </div>
+
+      {/* Auditor Subtab Selector Bar */}
+      <div style={{display:'flex', gap:10, borderBottom:'1px solid #e2e8f0', marginBottom:20, paddingBottom:10}}>
+        <button 
+          className={`button ${subTab==='events'?'primary':'secondary'}`} 
+          style={{padding:'8px 16px', fontSize:13}}
+          onClick={()=>setSubTab('events')}
+        >
+          <ShieldCheck size={16}/> FHIR AuditEvent Logs ({rows.length})
+        </button>
+        <button 
+          className={`button ${subTab==='orders'?'primary':'secondary'}`} 
+          style={{padding:'8px 16px', fontSize:13}}
+          onClick={()=>setSubTab('orders')}
+        >
+          <ClipboardList size={16}/> Recent Orders & Handoff Audit ({indents.length})
+        </button>
       </div>
 
       <ErrorBox>{error}</ErrorBox>
@@ -1090,80 +1112,109 @@ function AuditView({t}){
       )}
 
       {/* Audit Logs Section */}
-      <section className="panel">
-        <div className="panel-top">
-          <div>
-            <h3>FHIR AuditEvent Legal Logs <span className="count">{filteredRows.length}</span></h3>
-            <p>Immutable audit trail of system access, patient chart queries, and dispatch actions.</p>
+      {subTab === 'events' && (
+        <section className="panel">
+          <div className="panel-top">
+            <div>
+              <h3>FHIR AuditEvent Legal Logs <span className="count">{filteredRows.length}</span></h3>
+              <p>Immutable audit trail of system access, patient chart queries, and dispatch actions.</p>
+            </div>
           </div>
-        </div>
 
-        <div className="table-tools" style={{padding: '12px 16px', display: 'flex', gap: 12}}>
-          <div className="search" style={{flex: 1}}>
-            <Search size={16}/>
-            <input 
-              placeholder="Search by event, actor ID, or hash..." 
-              value={search} 
-              onChange={e => setSearch(e.target.value)} 
-            />
+          <div className="table-tools" style={{padding: '12px 16px', display: 'flex', gap: 12}}>
+            <div className="search" style={{flex: 1}}>
+              <Search size={16}/>
+              <input 
+                placeholder="Search by event, actor ID, or hash..." 
+                value={search} 
+                onChange={e => setSearch(e.target.value)} 
+              />
+            </div>
+            <select value={filter} onChange={e => setFilter(e.target.value)} style={{width: 220}}>
+              <option value="all">All Event Types</option>
+              <option value="INDENT_CREATED">INDENT_CREATED</option>
+              <option value="INDENT_VALIDATED">INDENT_VALIDATED</option>
+              <option value="MEDICATION_PACKED">MEDICATION_PACKED</option>
+              <option value="COURIER_DEPARTED">COURIER_DEPARTED</option>
+              <option value="DELIVERY_RECEIVED">DELIVERY_RECEIVED</option>
+              <option value="PRESCRIPTION_READ">PRESCRIPTION_READ</option>
+              <option value="INDENT_READ">INDENT_READ</option>
+              <option value="LOGOUT">LOGOUT</option>
+            </select>
           </div>
-          <select value={filter} onChange={e => setFilter(e.target.value)} style={{width: 220}}>
-            <option value="all">All Event Types</option>
-            <option value="INDENT_CREATED">INDENT_CREATED</option>
-            <option value="INDENT_VALIDATED">INDENT_VALIDATED</option>
-            <option value="MEDICATION_PACKED">MEDICATION_PACKED</option>
-            <option value="COURIER_DEPARTED">COURIER_DEPARTED</option>
-            <option value="DELIVERY_RECEIVED">DELIVERY_RECEIVED</option>
-            <option value="PRESCRIPTION_READ">PRESCRIPTION_READ</option>
-            <option value="INDENT_READ">INDENT_READ</option>
-            <option value="LOGOUT">LOGOUT</option>
-          </select>
-        </div>
 
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>SEQ</th>
-                <th>EVENT TYPE</th>
-                <th>ACTOR (AGENT)</th>
-                <th>RECORDED AT</th>
-                <th>RESULT</th>
-                <th>HMAC SIGNATURE</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.map(r => (
-                <tr key={r._id} style={{cursor: 'pointer'}} onClick={() => setSelectedAudit(r)}>
-                  <td className="mono" style={{fontWeight: 700}}>#{String(r.seq).padStart(4, '0')}</td>
-                  <td>
-                    {renderEventBadge(r.event.subtype[0]?.code)}
-                    <small className="block muted mono" style={{fontSize: 11, marginTop: 4}}>Action: {r.event.action}</small>
-                  </td>
-                  <td>
-                    <span style={{fontWeight: 600, color: '#0f172a'}}>{r.event.agent[0]?.who?.identifier?.value || 'System'}</span>
-                  </td>
-                  <td className="nowrap">{dateTime(r.event.recorded)}</td>
-                  <td>
-                    <span className={`badge ${r.event.outcome === '0' ? 'status-received' : 'status-cancelled'}`}>
-                      {r.event.outcome === '0' ? 'Success (200)' : 'Rejected (400)'}
-                    </span>
-                  </td>
-                  <td className="mono" style={{fontSize: 11, color: '#64748b'}}>
-                    {r.hash.slice(0, 16)}…
-                  </td>
-                  <td>
-                    <Button kind="ghost" style={{padding: '4px 8px', fontSize: 12}} onClick={(e) => { e.stopPropagation(); setSelectedAudit(r); }}>
-                      View FHIR <ChevronRight size={14}/>
-                    </Button>
-                  </td>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>SEQ</th>
+                  <th>EVENT TYPE</th>
+                  <th>ACTOR (AGENT)</th>
+                  <th>RECORDED AT</th>
+                  <th>RESULT</th>
+                  <th>HMAC SIGNATURE</th>
+                  <th>ACTIONS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody>
+                {filteredRows.map(r => (
+                  <tr key={r._id} style={{cursor: 'pointer'}} onClick={() => setSelectedAudit(r)}>
+                    <td className="mono" style={{fontWeight: 700}}>#{String(r.seq).padStart(4, '0')}</td>
+                    <td>
+                      {renderEventBadge(r.event.subtype[0]?.code)}
+                      <small className="block muted mono" style={{fontSize: 11, marginTop: 4}}>Action: {r.event.action}</small>
+                    </td>
+                    <td>
+                      <span style={{fontWeight: 600, color: '#0f172a'}}>{r.event.agent[0]?.who?.identifier?.value || 'System'}</span>
+                    </td>
+                    <td className="nowrap">{dateTime(r.event.recorded)}</td>
+                    <td>
+                      <span className={`badge ${r.event.outcome === '0' ? 'status-received' : 'status-cancelled'}`}>
+                        {r.event.outcome === '0' ? 'Success (200)' : 'Rejected (400)'}
+                      </span>
+                    </td>
+                    <td className="mono" style={{fontSize: 11, color: '#64748b'}}>
+                      {r.hash.slice(0, 16)}…
+                    </td>
+                    <td>
+                      <Button kind="ghost" style={{padding: '4px 8px', fontSize: 12}} onClick={(e) => { e.stopPropagation(); setSelectedAudit(r); }}>
+                        View FHIR <ChevronRight size={14}/>
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Recent Orders & Handoff Audit Subtab */}
+      {subTab === 'orders' && (
+        <Worklist 
+          rows={indents} 
+          onOpen={(item) => setSelectedIndent(item)} 
+          search={search} 
+          setSearch={setSearch} 
+          filter={filter} 
+          setFilter={setFilter} 
+          user={{role:'auditor', floors:['ipd-3']}} 
+          onNew={() => {}} 
+          t={t}
+        />
+      )}
+
+      {selectedIndent && (
+        <DetailModal 
+          key={selectedIndent._id} 
+          item={selectedIndent} 
+          user={{role:'auditor', floors:['ipd-3']}} 
+          config={{integrationMode:'demo', couriers:[]}} 
+          t={t} 
+          onClose={() => setSelectedIndent(null)} 
+          onChanged={refresh}
+        />
+      )}
 
       {/* Selected AuditEvent Detail Modal */}
       {selectedAudit && (

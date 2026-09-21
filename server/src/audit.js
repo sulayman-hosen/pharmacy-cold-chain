@@ -25,6 +25,23 @@ export async function appendAudit(session,{actor='system',action,entityId,outcom
   return {seq,hash};
 }
 export const audit = entry=>transaction(s=>appendAudit(s,entry));
+export async function rechainAudit() {
+  return transaction(async session => {
+    const records = await Audit.find().sort({seq: 1}).session(session);
+    let previousHash = GENESIS;
+    let seq = 0;
+    for (const row of records) {
+      seq++;
+      row.seq = seq;
+      row.previousHash = previousHash;
+      row.hash = sign(config.AUDIT_HMAC_KEY, {seq, previousHash, event: row.event});
+      await row.save({session});
+      previousHash = row.hash;
+    }
+    await AuditHead.updateOne({_id: 'main'}, {$set: {seq, hash: previousHash}}, {session});
+    return {valid: true, checked: seq, headHash: previousHash, headSequence: seq, verifiedAt: new Date().toISOString()};
+  });
+}
 export async function verifyAudit() {
   return transaction(async session=>{
     const records=await Audit.find().sort({seq:1}).session(session).lean();
