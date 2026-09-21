@@ -118,7 +118,7 @@ export function DetailModal({ item, user, config, t, onClose, onChanged }) {
     <Modal wide title="Delivery workspace" subtitle={`${row.prescriptionId} · Request ${row._id.slice(0, 8)}`} onClose={onClose}>
       <div className="detail-heading">
         <div>
-          <h3>{row.validation.name}</h3>
+          <h3>{row.requestedName || row.validation?.name}</h3>
           <p>
             {row.dose} {row.unit} · {row.patientRef} · {row.floor.toUpperCase()}
           </p>

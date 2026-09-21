@@ -52,7 +52,7 @@ export function PrintDeliverySlipModal({ row, onClose, t }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13, marginBottom: 12 }}>
           <div style={{ gridColumn: 'span 2', background: '#f8fafc', padding: 8, borderRadius: 6 }}>
             <strong>📦 MEDICATION & FORMULATION:</strong>
-            <div style={{ fontSize: 14, color: '#0284c7', fontWeight: 700, marginTop: 2 }}>{row.validation?.name}</div>
+            <div style={{ fontSize: 14, color: '#0284c7', fontWeight: 700, marginTop: 2 }}>{row.requestedName || row.validation?.name}</div>
             <div style={{ fontSize: 13, color: '#334155' }}>
               {row.dose} {row.unit} · Route SNOMED: {row.route}
             </div>

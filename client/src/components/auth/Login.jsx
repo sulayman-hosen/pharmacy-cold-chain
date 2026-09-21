@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileCheck2, ShieldCheck, Truck, ArrowRight, LockKeyhole } from 'lucide-react';
+import { FileCheck2, ShieldCheck, Truck, ArrowRight, LockKeyhole, Info } from 'lucide-react';
 import { api, setCsrf } from '../../api';
 import { Mark, Button, ErrorBox } from '../common/UIComponents';
 
@@ -84,7 +84,10 @@ export function Login({ onLogin, t }) {
               <ArrowRight size={17} />
             </Button>
           </form>
-          <small className="muted">{t.softwareDemo}</small>
+          <div className="login-demo-notice">
+            <Info size={15} />
+            <span>{t.softwareDemo}</span>
+          </div>
         </div>
       </section>
     </div>

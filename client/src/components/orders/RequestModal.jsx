@@ -81,10 +81,10 @@ export function RequestModal({ config, onClose, onCreated, user }) {
         method: 'POST',
         body: {
           prescriptionId,
-          requestedName: order?.name || form.requestedName,
-          dose: Number(order?.dose ?? form.dose),
-          unit: order?.unit || form.unit,
-          route: order?.route || form.route,
+          requestedName: form.requestedName || order?.name,
+          dose: Number(form.dose ?? order?.dose),
+          unit: form.unit || order?.unit,
+          route: form.route || order?.route,
           patientRef: form.patientRef
             ? form.patientRef.startsWith('Patient/')
               ? form.patientRef
@@ -330,17 +330,17 @@ export function RequestModal({ config, onClose, onCreated, user }) {
               </div>
               <div>
                 <small style={{ fontSize: 11, color: '#64748b', fontWeight: 700, display: 'block' }}>SELECTED DRUG & FORMULATION</small>
-                <strong style={{ fontSize: 14, color: '#0284c7' }}>{order?.name || form.requestedName}</strong>
+                <strong style={{ fontSize: 14, color: '#0284c7' }}>{form.requestedName || order?.name}</strong>
               </div>
               <div>
                 <small style={{ fontSize: 11, color: '#64748b', fontWeight: 700, display: 'block' }}>DOSE & UCUM UNIT</small>
                 <strong style={{ fontSize: 14, color: '#0f172a' }}>
-                  {order?.dose ?? form.dose} [{order?.unit || form.unit}]
+                  {form.dose ?? order?.dose} [{form.unit || order?.unit}]
                 </strong>
               </div>
               <div>
                 <small style={{ fontSize: 11, color: '#64748b', fontWeight: 700, display: 'block' }}>SNOMED ROUTE CODE</small>
-                <strong style={{ fontSize: 14, color: '#0f172a' }}>{order?.route || form.route}</strong>
+                <strong style={{ fontSize: 14, color: '#0f172a' }}>{form.route || order?.route}</strong>
               </div>
               <div>
                 <small style={{ fontSize: 11, color: '#64748b', fontWeight: 700, display: 'block' }}>ORDERING NURSE (ORC-12)</small>

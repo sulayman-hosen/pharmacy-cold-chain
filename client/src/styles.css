@@ -750,6 +750,24 @@ td strong { color: #0f172a; font-size: 14px; font-weight: 600; }
 .login-inner input { padding: 14px; font-size: 15px; }
 .login-inner .button { width: 100%; justify-content: space-between; padding: 14px 20px; margin-top: 12px; font-size: 15px; }
 
+.login-demo-notice {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  text-align: center;
+}
+.login-demo-notice svg {
+  flex-shrink: 0;
+  color: #0284c7;
+}
+
 .login-help { display: flex; align-items: flex-start; gap: 12px; padding: 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 24px 0 20px; color: #334155; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.03); }
 .login-help strong { font-size: 13px; color: #0f172a; display: block; }
 .login-help p { font-size: 16px; color: #475569; margin-top: 4px; line-height: 1.5; }

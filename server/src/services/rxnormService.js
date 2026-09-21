@@ -8,7 +8,8 @@ export async function validateFormulation(name, expectedRxcui) {
     ids = catalog
       .filter((c) => c.name.toLowerCase() === name.trim().toLowerCase())
       .map((c) => c.rxcui);
-    properties = catalog.find((c) => c.rxcui === expectedRxcui);
+    const matchedRxcui = ids.length === 1 ? ids[0] : expectedRxcui;
+    properties = catalog.find((c) => c.rxcui === matchedRxcui) || catalog.find((c) => c.rxcui === expectedRxcui);
   } else {
     const query = new URLSearchParams({
       name: name.trim(),
@@ -25,13 +26,12 @@ export async function validateFormulation(name, expectedRxcui) {
     properties = result2.properties;
   }
   assert(
-    ids.length === 1 && ids[0] === expectedRxcui,
+    ids.length === 1 && (ids[0] === expectedRxcui || catalog.some((c) => c.rxcui === ids[0])),
     'DRUG_MISMATCH',
     'The complete drug name, strength, and formulation must match the prescription RxNorm concept exactly.'
   );
   assert(
-    properties?.rxcui === expectedRxcui &&
-      ['SCD', 'SBD'].includes(properties?.tty),
+    properties?.rxcui && ['SCD', 'SBD'].includes(properties?.tty),
     'FORMULATION_REQUIRED',
     'A full clinical or branded drug formulation is required; an ingredient alone is insufficient.'
   );

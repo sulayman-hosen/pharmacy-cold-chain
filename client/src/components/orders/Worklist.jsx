@@ -82,7 +82,7 @@ export function Worklist({ rows, onOpen, search, setSearch, filter, setFilter, u
                         <Package size={18} />
                       </span>
                       <div>
-                        <strong>{r.validation.name}</strong>
+                        <strong>{r.requestedName || r.validation?.name}</strong>
                         <small>
                           {r.prescriptionId} · {r.floor.toUpperCase()}
                         </small>
