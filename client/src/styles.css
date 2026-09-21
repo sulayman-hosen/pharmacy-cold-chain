@@ -1112,10 +1112,108 @@ body.dark-theme .analytics-metric {
   background: #f8fafc;
   border-radius: 6px;
 }
+/* Print Media Styles for Box Manifests & Audit Certificates - 1 Single Visible Page Guaranteed */
 @media print {
-  body * { visibility: hidden; }
-  .modal-backdrop, .modal, .print-manifest, .print-manifest * { visibility: visible; }
-  .modal-backdrop { position: absolute; inset: 0; background: none; }
-  .modal { box-shadow: none; border: none; padding: 0; }
-  .close, .modal-actions { display: none !important; }
+  @page {
+    size: A4 portrait;
+    margin: 5mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  /* Hide all elements by default */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Keep parent React container chain visible */
+  #root,
+  .app-shell,
+  .main-column,
+  main,
+  .modal-backdrop,
+  .modal,
+  .print-manifest,
+  .print-manifest *,
+  .printable-manifest,
+  .printable-manifest * {
+    visibility: visible !important;
+  }
+
+  /* Hide static UI sections to eliminate extra page height */
+  .sidebar,
+  .topbar,
+  .page-title,
+  .summary-grid,
+  .care-banner,
+  .overview-grid,
+  .panel,
+  .footnote,
+  .app-footer,
+  .close,
+  .modal-actions,
+  .eyebrow,
+  .modal > h2,
+  .modal > p,
+  .button,
+  button {
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .modal-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    overflow: hidden !important;
+    z-index: 99999 !important;
+  }
+
+  .modal {
+    position: relative !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
+  }
+
+  .print-manifest,
+  .printable-manifest {
+    position: fixed !important;
+    top: 5mm !important;
+    left: 5mm !important;
+    right: 5mm !important;
+    width: calc(100% - 10mm) !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    border: 2px solid #0f172a !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+  }
 }
+
+
+
