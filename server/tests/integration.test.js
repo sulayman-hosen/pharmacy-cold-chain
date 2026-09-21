@@ -1,7 +1,7 @@
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import {temporaryMongo} from '../../scripts/temporary-mongo.js';
+import {temporaryMongo} from '../scripts/temporary-mongo.js';
 process.env.NODE_ENV='test';process.env.INTEGRATION_MODE='demo';process.env.AUDIT_HMAC_KEY='integration-test-signing-key-only-1234567890';
 for(const role of ['NURSE','PHARMACIST','AUDITOR']) process.env[`DEMO_${role}_PASSWORD`]='TestOnly-Strong-Password123!';
 let stop,app,db,workflow,worker,audit,hl7,seed,userN,userP,nurse,pharmacist,nurseCsrf,pharmacistCsrf;

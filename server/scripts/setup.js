@@ -1,7 +1,7 @@
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {randomBytes} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-const root=fileURLToPath(new URL('../',import.meta.url));
+const root=fileURLToPath(new URL('../../',import.meta.url));
 const path=root+'.env';
 if(existsSync(path)) {console.log('.env already exists; existing configuration was preserved.');process.exit(0);}
 let text=readFileSync(root+'.env.example','utf8');

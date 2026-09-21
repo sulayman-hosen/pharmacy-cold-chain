@@ -13,7 +13,7 @@ export async function start({afterConnect,cleanup}={}) {
     const isLocal = config.MONGO_URI.includes('127.0.0.1') || config.MONGO_URI.includes('localhost');
     if (config.NODE_ENV === 'development' && !afterConnect && isLocal) {
       console.log('\n[Coldline] Local MongoDB (27017) unavailable. Starting in-memory MongoDB replica set...');
-      const {temporaryMongo} = await import('../../scripts/temporary-mongo.js');
+      const {temporaryMongo} = await import('../scripts/temporary-mongo.js');
       const temp = await temporaryMongo();
       config.MONGO_URI = temp.mongo.getUri('cold_chain_dev');
       activeCleanup = temp.stop;

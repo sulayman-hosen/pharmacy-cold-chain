@@ -46,4 +46,4 @@ Error responses are JSON with fixed codes and safe messages. They do not echo th
 
 Raw HL7 is not persisted or logged. A digest is retained for replay comparison. Normalizing CR/LF does not change the digest; changing semantic fields does.
 
-See `samples/departure-template.hl7`. Replace the indent ID and timestamps with current values, or use the demo generator. A static sample’s old timestamp is expected to fail the departure-time check.
+See `server/samples/departure-template.hl7`. Replace the indent ID and timestamps with current values, or use the demo generator. A static sample’s old timestamp is expected to fail the departure-time check.
