@@ -20,6 +20,7 @@ import { integrationRouter } from './routes/integrationRoutes.js';
 
 export function createApp() {
   const app = express();
+  app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(
     helmet({
@@ -41,8 +42,17 @@ export function createApp() {
     req.requestId = randomUUID();
     res.set('Cache-Control', 'no-store');
     res.set('X-Request-ID', req.requestId);
-    if (req.get('Origin') && !config.origins.includes(req.get('Origin')))
-      throw new AppError(403, 'ORIGIN_DENIED', 'This origin is not allowed.');
+    const requestOrigin = req.get('Origin');
+    if (requestOrigin) {
+      const host = req.get('host');
+      const isSameOrigin =
+        requestOrigin === `${req.protocol}://${host}` ||
+        requestOrigin === `https://${host}` ||
+        requestOrigin === `http://${host}`;
+      if (!isSameOrigin && !config.origins.includes(requestOrigin)) {
+        throw new AppError(403, 'ORIGIN_DENIED', 'This origin is not allowed.');
+      }
+    }
     next();
   });
   app.use(
