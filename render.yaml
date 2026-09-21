@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: pharmacy-cold-chain
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: development
+      - key: INTEGRATION_MODE
+        value: demo
+      - key: MONGO_URI
+        sync: false
+      - key: AUDIT_HMAC_KEY
+        sync: false
+      - key: APP_ORIGINS
+        sync: false
