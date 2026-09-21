@@ -24,12 +24,16 @@ const loginLimiter = rateLimit({
 authRouter.post('/login', loginLimiter, async (req, res) => {
   const b = z
     .object({
-      username: z.string().min(1).max(60),
+      username: z.string().min(1).max(60).optional(),
+      role: z.string().min(1).max(60).optional(),
       password: z.string().min(1).max(200)
     })
-    .strict()
+    .refine((data) => data.username || data.role, {
+      message: 'Username or role is required'
+    })
     .parse(req.body);
-  const result = await login(b.username, b.password);
+  const username = b.username || b.role;
+  const result = await login(username, b.password);
   res
     .cookie('coldline', result.token, {
       ...cookieOptions,
