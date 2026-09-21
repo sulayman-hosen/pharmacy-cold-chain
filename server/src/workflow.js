@@ -8,7 +8,13 @@ import {safeNotification} from './notifications.js';
 import {parseDelivery,acknowledge} from './hl7.js';
 import {couriers} from './fixtures.js';
 export function assertScope(user,indent) {
-  assert(indent && (user.role==='pharmacist'||user.role==='auditor'||(user.floors.map(f=>f.toLowerCase()).includes(indent.floor.toLowerCase())&&(user.role!=='nurse'||indent.nurseId===user._id))),'NOT_FOUND','Request not found.',404);
+  assert(indent,'NOT_FOUND','Request not found.',404);
+  if (user.role==='pharmacist'||user.role==='auditor') return;
+  if (user.role==='nurse') {
+    assert(indent.nurseId===user._id,'NOT_FOUND','Request not found.',404);
+    return;
+  }
+  assert(user.floors&&user.floors.map(f=>f.toLowerCase()).includes(indent.floor.toLowerCase()),'NOT_FOUND','Request not found.',404);
 }
 export async function getIndent(id,user) {const i=await Indent.findById(id).lean();assertScope(user,i);return i;}
 export async function validateAgainstOrder(input,user) {
