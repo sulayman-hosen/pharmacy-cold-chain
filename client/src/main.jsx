@@ -1431,6 +1431,7 @@ function AuditView({t}){
 
             <div className="modal-actions">
               <Button kind="secondary" onClick={() => setSelectedAudit(null)}>Close</Button>
+            </div>
           </div>
         </Modal>
       )}
