@@ -437,7 +437,12 @@ function RequestModal({config,onClose,onCreated,user}){
           requestedName: order?.name || form.requestedName,
           dose: Number(order?.dose ?? form.dose),
           unit: order?.unit || form.unit,
-          route: order?.route || form.route
+          route: order?.route || form.route,
+          patientRef: form.patientRef ? (form.patientRef.startsWith('Patient/') ? form.patientRef : `Patient/${form.patientRef}`) : undefined,
+          nurseName: form.nurseName || undefined,
+          floor: form.floor || undefined,
+          room: form.room || undefined,
+          bed: form.bed || undefined
         }
       });
       onCreated();
@@ -717,7 +722,7 @@ function DetailModal({item,user,config,t,onClose,onChanged}){
 }
 
 function Worklist({rows,onOpen,search,setSearch,filter,setFilter,user,onNew,t}){
-  const filtered=rows.filter(r=>(filter==='all'||r.status===filter)&&`${r.prescriptionId} ${r.validation.name} ${r._id}`.toLowerCase().includes(search.toLowerCase()));
+  const filtered=rows.filter(r=>(filter==='all'||r.status===filter)&&`${r.prescriptionId} ${r.validation?.name||''} ${r._id} ${r.patientRef||''} ${r.nurseName||''} ${r.floor||''} ${r.room||''} ${r.bed||''}`.toLowerCase().includes(search.toLowerCase()));
 
   const statusOptions = [
     ['all', t.allStatuses || 'All statuses'],

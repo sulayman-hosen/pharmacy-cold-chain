@@ -18,7 +18,18 @@ import {sampleMessage} from './hl7.js';
 import {pushEnabled,checkPushEndpoint} from './notifications.js';
 const id=z.string().regex(/^[A-Za-z0-9.-]{1,64}$/);
 const uuid=z.uuid();
-const createBody=z.object({prescriptionId:id,requestedName:z.string().trim().min(3).max(250),dose:z.number().positive().max(100000),unit:z.string().min(1).max(24),route:z.string().regex(/^\d+$/)}).passthrough();
+const createBody=z.object({
+  prescriptionId:id,
+  requestedName:z.string().trim().min(3).max(250),
+  dose:z.number().positive().max(100000),
+  unit:z.string().min(1).max(24),
+  route:z.string().regex(/^\d+$/),
+  patientRef:z.string().trim().min(1).max(100).optional(),
+  nurseName:z.string().trim().min(1).max(150).optional(),
+  floor:z.string().trim().min(1).max(50).optional(),
+  room:z.string().trim().min(1).max(50).optional(),
+  bed:z.string().trim().min(1).max(50).optional()
+}).passthrough();
 const packBody=z.object({temperature:z.number().min(-100).max(100),lot:z.string().regex(/^[A-Za-z0-9.-]{1,60}$/),expiresAt:z.iso.datetime()}).strict();
 const demoBody=z.object({courierId:z.enum(couriers.map(c=>c.id)),minutes:z.number().int().min(1).max(240),temperature:z.number().min(-100).max(100)}).strict();
 export function createApp() {
@@ -45,7 +56,7 @@ export function createApp() {
     const {resource,orderHash,medication,...summary}=order;res.json(summary);
   });
   app.get('/api/indents',roles('nurse','pharmacist','auditor'),async(req,res)=>{
-    const filter=req.user.role==='auditor'?{}:{floor:{$in:req.user.floors},...(req.user.role==='nurse'?{nurseId:req.user._id}:{})};
+    const filter=(req.user.role==='pharmacist'||req.user.role==='auditor')?{}:{nurseId:req.user._id};
     const rows=await Indent.find(filter).sort({createdAt:-1}).limit(100).lean();await audit({actor:req.user._id,action:'INDENT_LIST_READ'});res.json(rows.map(({order,orderHash,...row})=>row));
   });
   app.post('/api/indents',roles('nurse'),async(req,res)=>res.status(201).json(await createIndent(createBody.parse(req.body),req.user)));

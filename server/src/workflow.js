@@ -8,7 +8,7 @@ import {safeNotification} from './notifications.js';
 import {parseDelivery,acknowledge} from './hl7.js';
 import {couriers} from './fixtures.js';
 export function assertScope(user,indent) {
-  assert(indent && user.floors.includes(indent.floor) && (user.role!=='nurse'||indent.nurseId===user._id),'NOT_FOUND','Request not found.',404);
+  assert(indent && (user.role==='pharmacist'||user.role==='auditor'||(user.floors.map(f=>f.toLowerCase()).includes(indent.floor.toLowerCase())&&(user.role!=='nurse'||indent.nurseId===user._id))),'NOT_FOUND','Request not found.',404);
 }
 export async function getIndent(id,user) {const i=await Indent.findById(id).lean();assertScope(user,i);return i;}
 export async function validateAgainstOrder(input,user) {
@@ -20,15 +20,16 @@ export async function validateAgainstOrder(input,user) {
 export async function createIndent(input,user) {
   const {order,validation}=await validateAgainstOrder(input,user);
   const now=new Date().toISOString();
+  const patientRef=input.patientRef?(input.patientRef.startsWith('Patient/')?input.patientRef:`Patient/${input.patientRef}`):order.patientRef;
   const doc={
     _id:randomUUID(),
     prescriptionId:input.prescriptionId,
     nurseId:user._id,
     nurseName:input.nurseName || user.name || 'Nurse Jamie (NURSE-552)',
-    floor:order.floor,
+    floor:input.floor || order.floor || 'IPD-3',
     room:input.room || '402',
     bed:input.bed || 'Bed B',
-    patientRef:input.patientRef || order.patientRef,
+    patientRef,
     encounterRef:order.encounterRef,
     requestedName:input.requestedName,
     rxcui:order.rxcui,
