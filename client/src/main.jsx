@@ -825,9 +825,10 @@ function AuditView({t}){
   const [rows,setRows]=useState([]);
   const [indents,setIndents]=useState([]);
   const [verification,setVerification]=useState(null);
-  const [error,setError]=useState('');
   const [search,setSearch]=useState('');
+  const [error,setError]=useState('');
   const [filter,setFilter]=useState('all');
+  const [onlyMismatched,setOnlyMismatched]=useState(false);
   const [selectedAudit,setSelectedAudit]=useState(null);
   const [selectedIndent,setSelectedIndent]=useState(null);
   const [lifecycleData,setLifecycleData]=useState(null);
@@ -891,6 +892,39 @@ function AuditView({t}){
     }
   }
 
+  async function repairChain(){
+    setIsVerifying(true);
+    setError('');
+    try{
+      const res = await api('/audit/repair', { method: 'POST' });
+      setToastMsg(res.message || 'Audit chain repaired and re-signed successfully!');
+      if(selectedAudit) setSelectedAudit(null);
+      await refresh();
+      await verifyChain();
+    }catch(e){
+      setError(e.message || 'Failed to repair audit chain');
+    }finally{
+      setIsVerifying(false);
+    }
+  }
+
+  async function deleteTamperedRecord(seq){
+    if(!window.confirm(`Are you sure you want to delete tampered audit record #${seq} and re-sign the cryptographic chain?`)) return;
+    setIsVerifying(true);
+    setError('');
+    try{
+      const res = await api('/audit/' + seq, { method: 'DELETE' });
+      setToastMsg(res.message || `Audit record #${seq} deleted and chain re-signed successfully!`);
+      if(selectedAudit) setSelectedAudit(null);
+      await refresh();
+      await verifyChain();
+    }catch(e){
+      setError(e.message || 'Failed to delete tampered record');
+    }finally{
+      setIsVerifying(false);
+    }
+  }
+
   useEffect(()=>{
     refresh();
     const interval = setInterval(loadLatestLifecycle, 10000);
@@ -921,6 +955,9 @@ function AuditView({t}){
   }
 
   const filteredRows = rows.filter(r => {
+    if(onlyMismatched && verification && !verification.valid){
+      if(r.seq !== (verification.failedAt || 1)) return false;
+    }
     const code = r.event.subtype[0]?.code || '';
     const actor = r.event.agent[0]?.who?.identifier?.value || '';
     const hash = r.hash || '';
@@ -1016,13 +1053,15 @@ function AuditView({t}){
           </small>
         </div>
 
-        <div className="analytics-card" style={{borderLeft: '4px solid #0284c7'}}>
-          <h4 style={{color:'#0369a1'}}><ShieldCheck size={16} color="#0284c7"/> 2. Tamper-Proof Audit Trail</h4>
-          <div className="analytics-metric" style={{fontSize: 22, color:'#0369a1'}}>
-            {verification ? (verification.valid ? 'Chain Intact' : 'Tamper Alert!') : 'HMAC Verified'}
+        <div className="analytics-card" style={{borderLeft: `4px solid ${verification?.valid === false ? '#dc2626' : '#0284c7'}`}}>
+          <h4 style={{color: verification?.valid === false ? '#b91c1c' : '#0369a1'}}>
+            <ShieldCheck size={16} color={verification?.valid === false ? '#dc2626' : '#0284c7'}/> 2. Tamper-Proof Audit Trail
+          </h4>
+          <div className="analytics-metric" style={{fontSize: 22, color: verification?.valid === false ? '#b91c1c' : '#0369a1'}}>
+            {verification ? (verification.valid ? 'Chain Intact' : `Tamper Alert! (#${verification.failedAt || 1})`) : 'HMAC Verified'}
           </div>
-          <small style={{color:'#0369a1', fontWeight:600}}>
-            {verification ? `${verification.checked} records signed with HMAC-SHA256` : 'HMAC-SHA256 Sequence Chaining Active'}
+          <small style={{color: verification?.valid === false ? '#b91c1c' : '#0369a1', fontWeight:600}}>
+            {verification ? (verification.valid ? `${verification.checked} records signed with HMAC-SHA256` : `Mismatch at record #${verification.failedAt || 1}`) : 'HMAC-SHA256 Sequence Chaining Active'}
           </small>
         </div>
 
@@ -1101,13 +1140,48 @@ function AuditView({t}){
       </section>
 
       {verification && (
-        <div className={`verification ${verification.valid ? 'valid' : 'invalid'}`} style={{marginBottom: 20}}>
-          <ShieldCheck size={25}/>
-          <div>
-            <strong>{verification.valid ? (t.auditVerified || 'HMAC Cryptographic Audit Chain Verified') : (t.auditFailed || 'Audit Chain Tampering Detected!')}</strong>
-            <p>{verification.checked} FHIR AuditEvents verified without gaps or mutations · Checkpoint: {dateTime(verification.verifiedAt)}</p>
+        <div className={`verification ${verification.valid ? 'valid' : 'invalid'}`} style={{marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 280}}>
+            <ShieldCheck size={28}/>
+            <div>
+              <strong>{verification.valid ? (t.auditVerified || 'HMAC Cryptographic Audit Chain Verified') : `Audit Chain Sequence Mismatch Detected at record #${verification.failedAt || 1}`}</strong>
+              <p>
+                {verification.valid 
+                  ? `${verification.checked} FHIR AuditEvents verified without gaps or mutations · Checkpoint: ${dateTime(verification.verifiedAt)}`
+                  : `Cryptographic HMAC-SHA256 signature verification failed at record sequence #${verification.failedAt || 1}.`}
+              </p>
+            </div>
           </div>
-          <span className="small-tag" style={{background:'#0f172a', color:'#ffffff'}}>HMAC-SHA256</span>
+          <div style={{display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap'}}>
+            {!verification.valid && (
+              <>
+                <button
+                  className={`button ${onlyMismatched ? 'primary' : 'secondary'}`}
+                  style={{fontSize: 12, padding: '6px 12px', background: onlyMismatched ? '#dc2626' : '#ffffff', color: onlyMismatched ? '#ffffff' : '#dc2626', borderColor: '#fca5a5'}}
+                  onClick={() => { setSubTab('events'); setOnlyMismatched(!onlyMismatched); }}
+                >
+                  🔍 {onlyMismatched ? 'Show All Records' : `Filter Failed Record (#${verification.failedAt || 1})`}
+                </button>
+                <button
+                  className="button secondary"
+                  style={{fontSize: 12, padding: '6px 12px', background: '#dc2626', color: '#ffffff', border: 0}}
+                  onClick={() => deleteTamperedRecord(verification.failedAt || 1)}
+                  disabled={isVerifying}
+                >
+                  🗑️ Delete Record #{verification.failedAt || 1} & Repair
+                </button>
+                <button
+                  className="button secondary"
+                  style={{fontSize: 12, padding: '6px 12px', background: '#0284c7', color: '#ffffff', border: 0}}
+                  onClick={repairChain}
+                  disabled={isVerifying}
+                >
+                  🛠️ Auto-Repair Chain
+                </button>
+              </>
+            )}
+            <span className="small-tag" style={{background:'#0f172a', color:'#ffffff'}}>HMAC-SHA256</span>
+          </div>
         </div>
       )}
 
@@ -1121,8 +1195,8 @@ function AuditView({t}){
             </div>
           </div>
 
-          <div className="table-tools" style={{padding: '12px 16px', display: 'flex', gap: 12}}>
-            <div className="search" style={{flex: 1}}>
+          <div className="table-tools" style={{padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap'}}>
+            <div className="search" style={{flex: 1, minWidth: 200}}>
               <Search size={16}/>
               <input 
                 placeholder="Search by event, actor ID, or hash..." 
@@ -1130,7 +1204,7 @@ function AuditView({t}){
                 onChange={e => setSearch(e.target.value)} 
               />
             </div>
-            <select value={filter} onChange={e => setFilter(e.target.value)} style={{width: 220}}>
+            <select value={filter} onChange={e => setFilter(e.target.value)} style={{width: 200}}>
               <option value="all">All Event Types</option>
               <option value="INDENT_CREATED">INDENT_CREATED</option>
               <option value="INDENT_VALIDATED">INDENT_VALIDATED</option>
@@ -1141,6 +1215,25 @@ function AuditView({t}){
               <option value="INDENT_READ">INDENT_READ</option>
               <option value="LOGOUT">LOGOUT</option>
             </select>
+            {verification && !verification.valid && (
+              <button
+                className={`button ${onlyMismatched ? 'primary' : 'secondary'}`}
+                style={{
+                  background: onlyMismatched ? '#dc2626' : '#fef2f2',
+                  color: onlyMismatched ? '#ffffff' : '#dc2626',
+                  borderColor: '#fca5a5',
+                  fontSize: 12,
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+                onClick={() => setOnlyMismatched(!onlyMismatched)}
+              >
+                <AlertTriangle size={15}/>
+                {onlyMismatched ? 'Show All Records' : `Filter Failed Record (#${verification.failedAt || 1})`}
+              </button>
+            )}
           </div>
 
           <div className="table-scroll">
@@ -1157,32 +1250,62 @@ function AuditView({t}){
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map(r => (
-                  <tr key={r._id} style={{cursor: 'pointer'}} onClick={() => setSelectedAudit(r)}>
-                    <td className="mono" style={{fontWeight: 700}}>#{String(r.seq).padStart(4, '0')}</td>
-                    <td>
-                      {renderEventBadge(r.event.subtype[0]?.code)}
-                      <small className="block muted mono" style={{fontSize: 11, marginTop: 4}}>Action: {r.event.action}</small>
-                    </td>
-                    <td>
-                      <span style={{fontWeight: 600, color: '#0f172a'}}>{r.event.agent[0]?.who?.identifier?.value || 'System'}</span>
-                    </td>
-                    <td className="nowrap">{dateTime(r.event.recorded)}</td>
-                    <td>
-                      <span className={`badge ${r.event.outcome === '0' ? 'status-received' : 'status-cancelled'}`}>
-                        {r.event.outcome === '0' ? 'Success (200)' : 'Rejected (400)'}
-                      </span>
-                    </td>
-                    <td className="mono" style={{fontSize: 11, color: '#64748b'}}>
-                      {r.hash.slice(0, 16)}…
-                    </td>
-                    <td>
-                      <Button kind="ghost" style={{padding: '4px 8px', fontSize: 12}} onClick={(e) => { e.stopPropagation(); setSelectedAudit(r); }}>
-                        View FHIR <ChevronRight size={14}/>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredRows.map(r => {
+                  const isMismatched = verification && !verification.valid && r.seq === (verification.failedAt || 1);
+                  return (
+                    <tr 
+                      key={r._id} 
+                      style={{
+                        cursor: 'pointer',
+                        background: isMismatched ? '#fef2f2' : undefined,
+                        borderLeft: isMismatched ? '4px solid #dc2626' : undefined
+                      }} 
+                      onClick={() => setSelectedAudit(r)}
+                    >
+                      <td className="mono" style={{fontWeight: 700}}>
+                        #{String(r.seq).padStart(4, '0')}
+                        {isMismatched && <span style={{display: 'block', fontSize: 10, color: '#dc2626', fontWeight: 800}}>MISMATCH</span>}
+                      </td>
+                      <td>
+                        {renderEventBadge(r.event.subtype[0]?.code)}
+                        <small className="block muted mono" style={{fontSize: 11, marginTop: 4}}>Action: {r.event.action}</small>
+                      </td>
+                      <td>
+                        <span style={{fontWeight: 600, color: '#0f172a'}}>{r.event.agent[0]?.who?.identifier?.value || 'System'}</span>
+                      </td>
+                      <td className="nowrap">{dateTime(r.event.recorded)}</td>
+                      <td>
+                        <span className={`badge ${r.event.outcome === '0' ? 'status-received' : 'status-cancelled'}`}>
+                          {r.event.outcome === '0' ? 'Success (200)' : 'Rejected (400)'}
+                        </span>
+                        {isMismatched && (
+                          <span className="badge" style={{background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700}}>
+                            <AlertTriangle size={11}/> TAMPERED SIGNATURE
+                          </span>
+                        )}
+                      </td>
+                      <td className="mono" style={{fontSize: 11, color: isMismatched ? '#dc2626' : '#64748b', fontWeight: isMismatched ? 700 : 400}}>
+                        {r.hash.slice(0, 16)}…
+                      </td>
+                      <td>
+                        <div style={{display: 'flex', gap: 6, alignItems: 'center'}} onClick={e => e.stopPropagation()}>
+                          <Button kind="ghost" style={{padding: '4px 8px', fontSize: 12}} onClick={() => setSelectedAudit(r)}>
+                            View FHIR <ChevronRight size={14}/>
+                          </Button>
+                          {isMismatched && (
+                            <button
+                              className="button secondary"
+                              style={{padding: '4px 8px', fontSize: 11, background: '#dc2626', color: '#fff', border: 0}}
+                              onClick={() => deleteTamperedRecord(r.seq)}
+                            >
+                              🗑️ Delete & Repair
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1225,6 +1348,35 @@ function AuditView({t}){
           onClose={() => setSelectedAudit(null)}
         >
           <div style={{display: 'flex', flexDirection: 'column', gap: 16}}>
+            {verification && !verification.valid && selectedAudit.seq === (verification.failedAt || 1) && (
+              <div style={{background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12}}>
+                <div>
+                  <strong style={{color: '#dc2626', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6}}>
+                    <AlertTriangle size={18}/> Cryptographic Signature Mismatch Detected
+                  </strong>
+                  <p style={{margin: '4px 0 0', fontSize: 12, color: '#991b1b'}}>
+                    The stored HMAC hash on this audit record does not match the recalculated hash. This indicates manual database tampering or sequence mutation.
+                  </p>
+                </div>
+                <div style={{display: 'flex', gap: 8}}>
+                  <button
+                    className="button secondary"
+                    style={{padding: '6px 12px', fontSize: 12, background: '#dc2626', color: '#fff', border: 0}}
+                    onClick={() => deleteTamperedRecord(selectedAudit.seq)}
+                  >
+                    🗑️ Delete Record & Repair Chain
+                  </button>
+                  <button
+                    className="button secondary"
+                    style={{padding: '6px 12px', fontSize: 12, background: '#0284c7', color: '#fff', border: 0}}
+                    onClick={repairChain}
+                  >
+                    🛠️ Auto-Repair Chain
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div style={{background:'#ecfdf5', border:'1px solid #a7f3d0', borderRadius:8, padding:14, display:'flex', flexDirection:'column', gap:10}}>
               <strong style={{fontSize:14, color:'#047857'}}>📋 4-Pillar Connected Healthcare References (HIPAA Compliance Rule)</strong>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, fontSize:12}}>
@@ -1279,7 +1431,6 @@ function AuditView({t}){
 
             <div className="modal-actions">
               <Button kind="secondary" onClick={() => setSelectedAudit(null)}>Close</Button>
-            </div>
           </div>
         </Modal>
       )}

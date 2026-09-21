@@ -9,7 +9,7 @@ import {existsSync} from 'node:fs';
 import {config} from './config.js';
 import {AppError,assert,sha256} from './core.js';
 import {Indent,Session,Audit,Outbox,Notification,PushSubscription,transaction,mongoose} from './db.js';
-import {audit,appendAudit,verifyAudit} from './audit.js';
+import {audit,appendAudit,verifyAudit,rechainAudit,deleteAndRechainAudit} from './audit.js';
 import {authenticate,roles,login,publicUser,cookieOptions} from './auth.js';
 import {readOrder} from './fhir.js';
 import {catalog,couriers} from './fixtures.js';
@@ -81,6 +81,8 @@ export function createApp() {
   });
   app.get('/api/audit',roles('auditor'),async(req,res)=>{const rows=await Audit.find().sort({seq:-1}).limit(100).lean();res.json(rows);});
   app.get('/api/audit/verify',roles('auditor'),async(req,res)=>res.json(await verifyAudit()));
+  app.post('/api/audit/repair',roles('auditor'),async(req,res)=>res.json(await rechainAudit()));
+  app.delete('/api/audit/:seq',roles('auditor'),async(req,res)=>res.json(await deleteAndRechainAudit(Number(req.params.seq))));
   app.get('/api/verify-audit-chain',roles('nurse','pharmacist','auditor'),async(req,res)=>{
     const result = await verifyAudit();
     res.json({
