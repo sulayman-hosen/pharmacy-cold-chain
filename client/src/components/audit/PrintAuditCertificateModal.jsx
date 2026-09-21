@@ -25,9 +25,12 @@ export function PrintAuditCertificateModal({ verification, totalCount, onClose, 
             alignItems: 'center'
           }}
         >
-          <div>
-            <strong style={{ fontSize: 18, color: '#0f172a', display: 'block' }}>COLDLINE AUDIT & COMPLIANCE CERTIFICATE</strong>
-            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>HL7 FHIR R4 AuditEvent Specification · HIPAA § 164.312(b)</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="/logo.png" alt="COLDLINE Logo" style={{ height: 40, width: 40, objectFit: 'contain' }} />
+            <div>
+              <strong style={{ fontSize: 18, color: '#0f172a', display: 'block' }}>COLDLINE AUDIT & COMPLIANCE CERTIFICATE</strong>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>HL7 FHIR R4 AuditEvent Specification · HIPAA § 164.312(b)</p>
+            </div>
           </div>
           <span
             className="small-tag"

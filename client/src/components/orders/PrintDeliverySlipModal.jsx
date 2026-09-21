@@ -37,12 +37,15 @@ export function PrintDeliverySlipModal({ row, onClose, t }) {
       onClose={onClose}
     >
       <div className="print-manifest" style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: 16, background: '#ffffff' }}>
-        <div className="print-manifest-head" style={{ borderBottom: '2px solid #0f172a', paddingBottom: 8, marginBottom: 12 }}>
-          <div>
-            <strong style={{ fontSize: 16, color: '#0f172a' }}>COLDLINE PHARMACY HANDOFF MANIFEST</strong>
-            <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-              Medication Request #{row.prescriptionId} · Order #{row._id.slice(0, 8)}
-            </p>
+        <div className="print-manifest-head" style={{ borderBottom: '2px solid #0f172a', paddingBottom: 8, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="/logo.png" alt="COLDLINE Logo" style={{ height: 36, width: 36, objectFit: 'contain' }} />
+            <div>
+              <strong style={{ fontSize: 16, color: '#0f172a' }}>COLDLINE PHARMACY HANDOFF MANIFEST</strong>
+              <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                Medication Request #{row.prescriptionId} · Order #{row._id.slice(0, 8)}
+              </p>
+            </div>
           </div>
           <span className="small-tag" style={{ borderColor: '#059669', color: '#059669', fontWeight: 700 }}>
             2°C – 8°C COLD CHAIN

@@ -32,10 +32,10 @@ export function playExcursionBeep() {
   } catch (e) {}
 }
 
-export function Mark() {
+export function Mark({ className = '', size }) {
   return (
-    <span className="mark">
-      <ShieldCheck size={22} />
+    <span className={`mark ${className}`}>
+      <img src="/logo.png" alt="COLDLINE Logo" style={{ width: size ? `${size}px` : undefined, height: size ? `${size}px` : undefined }} />
     </span>
   );
 }
