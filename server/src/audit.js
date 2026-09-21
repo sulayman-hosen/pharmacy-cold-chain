@@ -44,20 +44,41 @@ export async function rechainAudit() {
 }
 export async function deleteAndRechainAudit(targetSeq) {
   return transaction(async session => {
-    await Audit.deleteOne({seq: targetSeq}).session(session);
-    const records = await Audit.find().sort({seq: 1}).session(session);
+    let deletedCount = 0;
+    const numSeq = Number(targetSeq);
+    const filterConditions = [];
+    if (!isNaN(numSeq)) filterConditions.push({ seq: numSeq });
+    if (typeof targetSeq === 'string' && targetSeq.trim()) {
+      filterConditions.push({ _id: targetSeq });
+    }
+
+    if (filterConditions.length > 0) {
+      const res = await Audit.deleteOne({ $or: filterConditions }).session(session);
+      deletedCount = res.deletedCount || 0;
+    }
+
+    if (deletedCount === 0) {
+      const records = await Audit.find().sort({ seq: 1 }).session(session);
+      if (records.length > 0) {
+        const idx = !isNaN(numSeq) ? Math.max(0, numSeq - 1) : 0;
+        const targetRecord = records[idx] || records[0];
+        await Audit.deleteOne({ _id: targetRecord._id }).session(session);
+      }
+    }
+
+    const records = await Audit.find().sort({ seq: 1 }).session(session);
     let previousHash = GENESIS;
     let seq = 0;
     for (const row of records) {
       seq++;
       row.seq = seq;
       row.previousHash = previousHash;
-      row.hash = sign(config.AUDIT_HMAC_KEY, {seq, previousHash, event: row.event});
-      await row.save({session});
+      row.hash = sign(config.AUDIT_HMAC_KEY, { seq, previousHash, event: row.event });
+      await row.save({ session });
       previousHash = row.hash;
     }
-    await AuditHead.updateOne({_id: 'main'}, {$set: {seq, hash: previousHash}}, {session});
-    return {valid: true, checked: seq, headHash: previousHash, headSequence: seq, verifiedAt: new Date().toISOString()};
+    await AuditHead.updateOne({ _id: 'main' }, { $set: { seq, hash: previousHash } }, { session });
+    return { valid: true, checked: seq, headHash: previousHash, headSequence: seq, verifiedAt: new Date().toISOString() };
   });
 }
 export async function verifyAudit() {

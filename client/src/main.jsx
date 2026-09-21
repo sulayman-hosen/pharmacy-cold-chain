@@ -908,13 +908,14 @@ function AuditView({t}){
     }
   }
 
-  async function deleteTamperedRecord(seq){
-    if(!window.confirm(`Are you sure you want to delete tampered audit record #${seq} and re-sign the cryptographic chain?`)) return;
+  async function deleteTamperedRecord(seqOrId){
+    const target = seqOrId || (selectedAudit?._id || selectedAudit?.seq) || (verification?.failedRecord?._id || verification?.failedAt || 1);
+    if(!window.confirm(`Are you sure you want to delete audit record #${target} and re-sign the cryptographic chain?`)) return;
     setIsVerifying(true);
     setError('');
     try{
-      const res = await api('/audit/' + seq, { method: 'DELETE' });
-      setToastMsg(res.message || `Audit record #${seq} deleted and chain re-signed successfully!`);
+      const res = await api('/audit/' + encodeURIComponent(target), { method: 'DELETE' });
+      setToastMsg(res.message || `Audit record deleted and chain re-signed successfully!`);
       if(selectedAudit) setSelectedAudit(null);
       await refresh();
       await verifyChain();

@@ -82,7 +82,7 @@ export function createApp() {
   app.get('/api/audit',roles('auditor'),async(req,res)=>{const rows=await Audit.find().sort({seq:-1}).limit(100).lean();res.json(rows);});
   app.get('/api/audit/verify',roles('auditor'),async(req,res)=>res.json(await verifyAudit()));
   app.post('/api/audit/repair',roles('auditor'),async(req,res)=>res.json(await rechainAudit()));
-  app.delete('/api/audit/:seq',roles('auditor'),async(req,res)=>res.json(await deleteAndRechainAudit(Number(req.params.seq))));
+  app.delete('/api/audit/:seq',roles('auditor'),async(req,res)=>res.json(await deleteAndRechainAudit(req.params.seq)));
   app.get('/api/verify-audit-chain',roles('nurse','pharmacist','auditor'),async(req,res)=>{
     const result = await verifyAudit();
     res.json({
