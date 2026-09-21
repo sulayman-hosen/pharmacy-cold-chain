@@ -956,7 +956,10 @@ function AuditView({t}){
 
   const filteredRows = rows.filter(r => {
     if(onlyMismatched && verification && !verification.valid){
-      if(r.seq !== (verification.failedAt || 1)) return false;
+      const targetSeq = verification.failedAt || 1;
+      const targetId = verification.failedRecord?._id;
+      const isMatch = (r.seq === targetSeq) || (targetId && r._id === targetId);
+      if(!isMatch) return false;
     }
     const code = r.event.subtype[0]?.code || '';
     const actor = r.event.agent[0]?.who?.identifier?.value || '';
@@ -965,6 +968,16 @@ function AuditView({t}){
     const matchesFilter = filter === 'all' || code.toUpperCase() === filter.toUpperCase();
     return matchesSearch && matchesFilter;
   });
+
+  function openFailedRecordModal(){
+    setSubTab('events');
+    const targetSeq = verification?.failedAt || 1;
+    const targetId = verification?.failedRecord?._id;
+    const failedItem = verification?.failedRecord || rows.find(r => r.seq === targetSeq || (targetId && r._id === targetId)) || rows[0];
+    if(failedItem){
+      setSelectedAudit(failedItem);
+    }
+  }
 
   function renderEventBadge(code){
     const formatted = (code || 'REST_EVENT').replaceAll('_', ' ');
@@ -1144,11 +1157,11 @@ function AuditView({t}){
           <div style={{display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 280}}>
             <ShieldCheck size={28}/>
             <div>
-              <strong>{verification.valid ? (t.auditVerified || 'HMAC Cryptographic Audit Chain Verified') : `Audit Chain Sequence Mismatch Detected at record #${verification.failedAt || 1}`}</strong>
-              <p>
+              <strong style={{fontSize: 15}}>{verification.valid ? (t.auditVerified || 'HMAC Cryptographic Audit Chain Verified') : `Audit Chain Sequence Mismatch Detected at record #${verification.failedAt || 1}`}</strong>
+              <p style={{marginTop: 4}}>
                 {verification.valid 
                   ? `${verification.checked} FHIR AuditEvents verified without gaps or mutations · Checkpoint: ${dateTime(verification.verifiedAt)}`
-                  : `Cryptographic HMAC-SHA256 signature verification failed at record sequence #${verification.failedAt || 1}.`}
+                  : (verification.reason || `Cryptographic HMAC-SHA256 signature verification failed at record sequence #${verification.failedAt || 1}.`)}
               </p>
             </div>
           </div>
@@ -1156,15 +1169,15 @@ function AuditView({t}){
             {!verification.valid && (
               <>
                 <button
-                  className={`button ${onlyMismatched ? 'primary' : 'secondary'}`}
-                  style={{fontSize: 12, padding: '6px 12px', background: onlyMismatched ? '#dc2626' : '#ffffff', color: onlyMismatched ? '#ffffff' : '#dc2626', borderColor: '#fca5a5'}}
-                  onClick={() => { setSubTab('events'); setOnlyMismatched(!onlyMismatched); }}
+                  className="button secondary"
+                  style={{fontSize: 12, padding: '6px 12px', background: '#dc2626', color: '#ffffff', border: 0, fontWeight: 700}}
+                  onClick={openFailedRecordModal}
                 >
-                  🔍 {onlyMismatched ? 'Show All Records' : `Filter Failed Record (#${verification.failedAt || 1})`}
+                  👁️ View Record #{verification.failedAt || 1} Failure Reason
                 </button>
                 <button
                   className="button secondary"
-                  style={{fontSize: 12, padding: '6px 12px', background: '#dc2626', color: '#ffffff', border: 0}}
+                  style={{fontSize: 12, padding: '6px 12px', background: '#b91c1c', color: '#ffffff', border: 0}}
                   onClick={() => deleteTamperedRecord(verification.failedAt || 1)}
                   disabled={isVerifying}
                 >
@@ -1231,10 +1244,31 @@ function AuditView({t}){
                 onClick={() => setOnlyMismatched(!onlyMismatched)}
               >
                 <AlertTriangle size={15}/>
-                {onlyMismatched ? 'Show All Records' : `Filter Failed Record (#${verification.failedAt || 1})`}
+                {onlyMismatched ? 'Show All Records' : `Filter Mismatched Record (#${verification.failedAt || 1})`}
               </button>
             )}
           </div>
+
+          {onlyMismatched && filteredRows.length === 0 && verification && !verification.valid && (
+            <div style={{margin: 16, padding: 14, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div>
+                <strong style={{color: '#dc2626', display: 'flex', alignItems: 'center', gap: 6}}>
+                  <AlertTriangle size={16}/> Record #{verification.failedAt || 1} missing from database (Sequence Gap Error)
+                </strong>
+                <p style={{margin: '4px 0 0', fontSize: 12, color: '#991b1b'}}>
+                  {verification.reason || `Expected record #${verification.failedAt || 1}, but it was deleted directly. Click Auto-Repair to re-index.`}
+                </p>
+              </div>
+              <div style={{display: 'flex', gap: 8}}>
+                <button className="button secondary" style={{background: '#dc2626', color: '#fff', border: 0, fontSize: 12}} onClick={() => deleteTamperedRecord(verification.failedAt || 1)}>
+                  🗑️ Delete & Re-chain Sequence
+                </button>
+                <button className="button secondary" style={{background: '#0284c7', color: '#fff', border: 0, fontSize: 12}} onClick={repairChain}>
+                  🛠️ Auto-Repair Chain
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="table-scroll">
             <table>
@@ -1251,7 +1285,9 @@ function AuditView({t}){
               </thead>
               <tbody>
                 {filteredRows.map(r => {
-                  const isMismatched = verification && !verification.valid && r.seq === (verification.failedAt || 1);
+                  const targetSeq = verification?.failedAt || 1;
+                  const targetId = verification?.failedRecord?._id;
+                  const isMismatched = verification && !verification.valid && (r.seq === targetSeq || (targetId && r._id === targetId));
                   return (
                     <tr 
                       key={r._id} 
@@ -1290,7 +1326,7 @@ function AuditView({t}){
                       <td>
                         <div style={{display: 'flex', gap: 6, alignItems: 'center'}} onClick={e => e.stopPropagation()}>
                           <Button kind="ghost" style={{padding: '4px 8px', fontSize: 12}} onClick={() => setSelectedAudit(r)}>
-                            View FHIR <ChevronRight size={14}/>
+                            View Details <ChevronRight size={14}/>
                           </Button>
                           {isMismatched && (
                             <button
@@ -1348,30 +1384,44 @@ function AuditView({t}){
           onClose={() => setSelectedAudit(null)}
         >
           <div style={{display: 'flex', flexDirection: 'column', gap: 16}}>
-            {verification && !verification.valid && selectedAudit.seq === (verification.failedAt || 1) && (
-              <div style={{background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12}}>
-                <div>
-                  <strong style={{color: '#dc2626', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6}}>
-                    <AlertTriangle size={18}/> Cryptographic Signature Mismatch Detected
+            {verification && !verification.valid && (selectedAudit.seq === (verification.failedAt || 1) || selectedAudit._id === verification.failedRecord?._id || selectedAudit.seq === verification.failedRecord?.seq) && (
+              <div style={{background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: 16, display: 'flex', flexDirection: 'column', gap: 12}}>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                  <strong style={{color: '#dc2626', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8}}>
+                    <AlertTriangle size={20}/> Cryptographic Signature Verification Failed
                   </strong>
-                  <p style={{margin: '4px 0 0', fontSize: 12, color: '#991b1b'}}>
-                    The stored HMAC hash on this audit record does not match the recalculated hash. This indicates manual database tampering or sequence mutation.
-                  </p>
+                  <span className="badge" style={{background: '#dc2626', color: '#fff', fontSize: 11, fontWeight: 700}}>
+                    RECORD #{selectedAudit.seq} TAMPERED
+                  </span>
                 </div>
-                <div style={{display: 'flex', gap: 8}}>
+                
+                <div style={{fontSize: 13, color: '#991b1b', background: '#ffffff', padding: 12, borderRadius: 6, border: '1px solid #fecaca'}}>
+                  <strong style={{display: 'block', color: '#b91c1c', marginBottom: 4}}>WHY VERIFICATION FAILED (কারণ):</strong>
+                  <p style={{margin: '0 0 8px 0', fontWeight: 600}}>
+                    {verification.reason || 'The HMAC-SHA256 cryptographic signature calculated from the canonical JSON body does not match the stored hash in the database.'}
+                  </p>
+                  {verification.expectedHash && (
+                    <div style={{marginTop: 8, fontSize: 11, fontFamily: 'monospace', background: '#0f172a', padding: 10, borderRadius: 6, color: '#f8fafc', wordBreak: 'break-all'}}>
+                      <div style={{color: '#4ade80', marginBottom: 4}}><strong>EXPECTED SIGNATURE (Calculated):</strong> {verification.expectedHash}</div>
+                      <div style={{color: '#f87171'}}><strong>STORED SIGNATURE (In Database):</strong> {verification.actualHash || selectedAudit.hash}</div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4}}>
                   <button
                     className="button secondary"
-                    style={{padding: '6px 12px', fontSize: 12, background: '#dc2626', color: '#fff', border: 0}}
+                    style={{padding: '8px 16px', fontSize: 13, background: '#dc2626', color: '#fff', border: 0, fontWeight: 700}}
                     onClick={() => deleteTamperedRecord(selectedAudit.seq)}
                   >
-                    🗑️ Delete Record & Repair Chain
+                    🗑️ Delete Record #{selectedAudit.seq} & Repair Chain
                   </button>
                   <button
                     className="button secondary"
-                    style={{padding: '6px 12px', fontSize: 12, background: '#0284c7', color: '#fff', border: 0}}
+                    style={{padding: '8px 16px', fontSize: 13, background: '#0284c7', color: '#fff', border: 0, fontWeight: 700}}
                     onClick={repairChain}
                   >
-                    🛠️ Auto-Repair Chain
+                    🛠️ Auto-Repair & Re-Sign Chain
                   </button>
                 </div>
               </div>
