@@ -173,7 +173,7 @@ label {
 }
 
 /* Brand & Logo */
-.brand { display: flex; align-items: center; gap: 10px; font-family: 'Roboto', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: 'Roboto', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; text-transform: uppercase; }
 .brand-period { color: #2563eb; }
 .mark {
   display: inline-flex;
