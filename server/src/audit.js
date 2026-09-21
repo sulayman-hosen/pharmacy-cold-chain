@@ -27,17 +27,35 @@ export async function appendAudit(session,{actor='system',action,entityId,outcom
 export const audit = entry=>transaction(s=>appendAudit(s,entry));
 export async function rechainAudit() {
   return transaction(async session => {
-    const records = await Audit.find().sort({seq: 1}).session(session);
+    const records = await Audit.find().sort({seq: 1, recorded: 1}).session(session).lean();
+    if (records.length === 0) {
+      await AuditHead.updateOne({_id: 'main'}, {$set: {seq: 0, hash: GENESIS}}, {session});
+      return {valid: true, checked: 0, headHash: GENESIS, headSequence: 0, verifiedAt: new Date().toISOString()};
+    }
+
     let previousHash = GENESIS;
     let seq = 0;
+    const bulkOps = [];
+
     for (const row of records) {
       seq++;
-      row.seq = seq;
-      row.previousHash = previousHash;
-      row.hash = sign(config.AUDIT_HMAC_KEY, {seq, previousHash, event: row.event});
-      await row.save({session});
-      previousHash = row.hash;
+      const currentSeq = seq;
+      const currentPrevHash = previousHash;
+      const currentHash = sign(config.AUDIT_HMAC_KEY, {seq: currentSeq, previousHash: currentPrevHash, event: row.event});
+      
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: row._id },
+          update: { $set: { seq: currentSeq, previousHash: currentPrevHash, hash: currentHash } }
+        }
+      });
+      previousHash = currentHash;
     }
+
+    if (bulkOps.length > 0) {
+      await Audit.bulkWrite(bulkOps, { session });
+    }
+
     await AuditHead.updateOne({_id: 'main'}, {$set: {seq, hash: previousHash}}, {session});
     return {valid: true, checked: seq, headHash: previousHash, headSequence: seq, verifiedAt: new Date().toISOString()};
   });
@@ -58,7 +76,7 @@ export async function deleteAndRechainAudit(targetSeq) {
     }
 
     if (deletedCount === 0) {
-      const records = await Audit.find().sort({ seq: 1 }).session(session);
+      const records = await Audit.find().sort({ seq: 1 }).session(session).lean();
       if (records.length > 0) {
         const idx = !isNaN(numSeq) ? Math.max(0, numSeq - 1) : 0;
         const targetRecord = records[idx] || records[0];
@@ -66,17 +84,30 @@ export async function deleteAndRechainAudit(targetSeq) {
       }
     }
 
-    const records = await Audit.find().sort({ seq: 1 }).session(session);
+    const records = await Audit.find().sort({ seq: 1, recorded: 1 }).session(session).lean();
     let previousHash = GENESIS;
     let seq = 0;
+    const bulkOps = [];
+
     for (const row of records) {
       seq++;
-      row.seq = seq;
-      row.previousHash = previousHash;
-      row.hash = sign(config.AUDIT_HMAC_KEY, { seq, previousHash, event: row.event });
-      await row.save({ session });
-      previousHash = row.hash;
+      const currentSeq = seq;
+      const currentPrevHash = previousHash;
+      const currentHash = sign(config.AUDIT_HMAC_KEY, { seq: currentSeq, previousHash: currentPrevHash, event: row.event });
+      
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: row._id },
+          update: { $set: { seq: currentSeq, previousHash: currentPrevHash, hash: currentHash } }
+        }
+      });
+      previousHash = currentHash;
     }
+
+    if (bulkOps.length > 0) {
+      await Audit.bulkWrite(bulkOps, { session });
+    }
+
     await AuditHead.updateOne({ _id: 'main' }, { $set: { seq, hash: previousHash } }, { session });
     return { valid: true, checked: seq, headHash: previousHash, headSequence: seq, verifiedAt: new Date().toISOString() };
   });

@@ -899,6 +899,7 @@ function AuditView({t}){
       const res = await api('/audit/repair', { method: 'POST' });
       setToastMsg(res.message || 'Audit chain repaired and re-signed successfully!');
       if(selectedAudit) setSelectedAudit(null);
+      setOnlyMismatched(false);
       await refresh();
       await verifyChain();
     }catch(e){
@@ -917,6 +918,7 @@ function AuditView({t}){
       const res = await api('/audit/' + encodeURIComponent(target), { method: 'DELETE' });
       setToastMsg(res.message || `Audit record deleted and chain re-signed successfully!`);
       if(selectedAudit) setSelectedAudit(null);
+      setOnlyMismatched(false);
       await refresh();
       await verifyChain();
     }catch(e){
