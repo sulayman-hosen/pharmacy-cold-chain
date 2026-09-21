@@ -12,7 +12,9 @@ Install **Node.js 22.12+** (Node 24 LTS recommended), then open a terminal insid
 npm install
 npm run demo
 ```
-
+DEMO_NURSE_PASSWORD=NursePass12345!
+DEMO_PHARMACIST_PASSWORD=PharmaPass12345!
+DEMO_AUDITOR_PASSWORD=AuditPass12345!
 Open **http://localhost:4000**.
 
 `demo` generates `.env` once, builds React, starts a real temporary MongoDB replica set, seeds synthetic records and accounts, and starts the API and background worker. The first run needs internet to download packages and the MongoDB binary. After installation and binary download, the demo integrations work without internet. Temporary demo data is discarded when the demo stops.
