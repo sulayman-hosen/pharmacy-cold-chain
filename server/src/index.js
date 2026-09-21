@@ -36,9 +36,9 @@ export async function start({ afterConnect, cleanup } = {}) {
 
   await checkFhirVersion();
   if (afterConnect) await afterConnect();
-  const server = createApp().listen(config.PORT, '127.0.0.1', () =>
+  const server = createApp().listen(config.PORT, '0.0.0.0', () =>
     console.log(
-      `Coldline ready at http://localhost:${config.PORT} (${config.INTEGRATION_MODE} mode)`
+      `Coldline ready at http://0.0.0.0:${config.PORT} (${config.INTEGRATION_MODE} mode)`
     )
   );
   const stopWorker = startWorker();
